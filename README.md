@@ -2,17 +2,10 @@
 
 # LanShare
 
-**局域网里的文件中转站 —— 打开浏览器就能传文件**
+**局域网文件共享 —— 打开浏览器就能传文件**
+Share files across your local network — no app, no account, no cable.
 
-手机拍的照片传到电脑，电脑上的安装包发到平板，不需要数据线、不需要装客户端、不需要登录。
-
-电脑上跑一个进程，同一个 Wi-Fi 下的所有设备打开网页就能互传文件。
-
-<br>
-
-⭐ **如果 LanShare 对你有用，给个 Star 吧** ⭐
-
-<br>
+⭐ 如果对你有用，给个 Star 吧 / If it helps, give it a star ⭐
 
 ![version](https://img.shields.io/badge/version-1.0.0-4fd6c4?style=for-the-badge)
 ![node](https://img.shields.io/badge/Node.js-%E2%89%A522.5-3c873a?style=for-the-badge&logo=node.js&logoColor=white)
@@ -20,61 +13,25 @@
 ![platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-1d2024?style=for-the-badge)
 ![license](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
 
-<br>
-
-[快速开始](#快速开始) · [功能](#功能) · [使用说明](#使用说明) · [常见问题](#常见问题) · [设计取舍](#设计取舍) · [安全提醒](#安全提醒)
+[English](#english) · [简体中文](#简体中文)
 
 </div>
 
 ---
 
-## 为什么不用现成的？
+## English
 
-做这个之前对比过几个成熟项目，它们都很好，但没有一个完全对味：
+LanShare is a zero-dependency Node.js service that turns any folder into a file-sharing page for your LAN. Start it on one machine, and every phone, tablet and laptop on the same Wi-Fi can open it in a browser to upload and download files.
 
-| 项目 | 它擅长什么 | 为什么没直接用 |
-| --- | --- | --- |
-| **LocalSend** | 跨平台 AirDrop 替代品 | 每台设备都要装客户端，不是网页 |
-| **PairDrop / ShareDrop** | WebRTC 点对点，免安装 | 没有服务端存储，一关页面文件就没了 |
-| **File Browser** | 强大的目录管理 | 界面偏旧，没有分享二维码和断点续传 |
-| **copyparty** | 协议极全，功能天花板 | 配置项多，界面偏工程师向 |
-| **dufs** | 极致轻量 | 缺少分享页、二维码、实时刷新 |
+### Two modes
 
-LanShare 想做的事很简单：**保留它们最有用的部分，把界面按手机到桌面重新做一遍。**
+**Share a file** — pick files, get a one-off link and QR code. Best for sending something once.
 
----
+**Shared space** — create a folder and get a permanent link. Anything dropped into that folder (from the web UI or your OS file manager) shows up on the phone instantly. Browse subfolders, download files individually, or grab the whole folder as a ZIP. Phones can upload too, and you can switch a space to read-only.
 
-## 两种使用模式
+### Quick start
 
-LanShare 提供两种互不干扰的共享方式，按场景选：
-
-### 模式一：分享单个文件
-
-适合「把这个东西发给你」。
-
-在文件列表里选中文件或文件夹 → 点「分享」→ 得到一个链接和二维码。对方打开就能下载，用完链接就可以删掉。
-
-- 链接对应的是**某一次选择**，分享后目录再变化不影响它
-- 适合发一份 PDF、一个安装包、几张照片
-
-### 模式二：共享空间
-
-适合「我们一直往这里放东西」。
-
-进入「共享空间」→ 创建 → 得到一个**固定不变的链接**。之后：
-
-- 从电脑上把文件拖进这个文件夹（用系统文件管理器、或者网页上传都行）
-- 手机打开链接，看到的是目录的实时内容，可以进入子文件夹、逐个下载或整体打包
-- 手机也能直接往里传文件（可以在后台关掉，变成只读）
-- 链接永远不变，不用每次重新生成
-
-> 共享空间就是磁盘上的普通文件夹，同样会出现在「全部文件」里，可以正常重命名、移动、删除。
-
----
-
-## 快速开始
-
-只有一个前置条件：**Node.js 22.5 或更高版本**（用到内置的 `node:sqlite`，所以不需要 `npm install`）。
+Requires **Node.js 22.5 or newer** (uses the built-in `node:sqlite`, so no `npm install`).
 
 ```bash
 git clone https://github.com/1194042851/LanShare.git
@@ -82,7 +39,92 @@ cd LanShare
 ./start.sh
 ```
 
-Windows 上直接：
+On Windows:
+
+```bash
+node server.js
+```
+
+The terminal prints every reachable address:
+
+```
+  <device name> —— 局域网共享
+  local:  http://localhost:<port>
+  LAN:    http://<your-lan-ip>:<port>   (<interface>)
+  storage: <absolute path to shared folder>
+```
+
+Open the LAN address on your phone. Both devices just need to be on the same network.
+
+### Features
+
+- Drag & drop, file picker, or whole-folder upload
+- 4 MB chunks, 3 concurrent, automatic retry; large files never buffered in memory
+- Downloads support HTTP Range, so video seeking and resumable downloads work
+- Multi-select or folders streamed to a ZIP without touching disk
+- Inline preview for images, video, audio, PDF and text
+- Share links use your real LAN IP, never `localhost`
+- Responsive layouts for phone, tablet and desktop; dark and light themes
+- Live refresh via SSE when another device uploads
+
+### Usage
+
+```bash
+LANSHARE_ROOT=~/Downloads node server.js    # share another folder
+PORT=9000 LANSHARE_NAME="Living room NAS" node server.js
+```
+
+| Flag | Env | Default | Description |
+| --- | --- | --- | --- |
+| `--port` | `PORT` | `8090` | Listen port |
+| `--root` | `LANSHARE_ROOT` | `./files` | Shared folder |
+| `--name` | `LANSHARE_NAME` | hostname | Display name |
+| `--host` | `HOST` | `0.0.0.0` | Bind address |
+| — | `LANSHARE_MAX_UPLOAD` | 1 TB | Max file size in bytes |
+
+### FAQ
+
+**Phone can't open the address.** Check that both devices are on the same Wi-Fi, that the firewall allows the port, and that you used the LAN IP rather than `localhost` (on a phone, `localhost` means the phone itself).
+
+**`node:sqlite` error on start.** Your Node is too old — run `node -v`, you need 22.5+.
+
+**Duplicate file name.** Nothing is overwritten silently; it becomes `report (1).pdf`.
+
+**Link shows `127.0.0.1`.** It won't — the server swaps loopback for a real interface address and skips virtual adapters such as `tun`, `docker` and `Meta`.
+
+### Security
+
+LanShare is a **personal LAN tool with no authentication**:
+
+- Anyone on the same network can read and write the shared folder
+- Run it only on networks you trust
+- **Do not expose it to the public internet** without a reverse proxy and authentication
+
+Path arguments are normalized and checked, so `..` traversal and the internal `.lanshare` directory are unreachable.
+
+---
+
+## 简体中文
+
+LanShare 是一个零依赖的 Node.js 服务，把一个普通文件夹变成局域网里的文件共享页面。在一台机器上启动，同一个 Wi-Fi 下的手机、平板和电脑打开浏览器就能互传文件。
+
+### 两种模式
+
+**分享文件** —— 选中文件，生成一次性链接和二维码，适合「把这个东西发给你」。
+
+**共享空间** —— 建一个文件夹，得到一个固定不变的链接。之后放进去的东西（网页上传或直接用系统文件管理器拖进去都行）手机打开链接就能看到，可以浏览子文件夹、逐个下载，或把整个目录打成 ZIP。手机也能上传，也可以切换成只读。
+
+### 快速开始
+
+需要 **Node.js 22.5 或更高版本**（用到内置的 `node:sqlite`，所以不需要 `npm install`）。
+
+```bash
+git clone https://github.com/1194042851/LanShare.git
+cd LanShare
+./start.sh
+```
+
+Windows 上：
 
 ```bash
 node server.js
@@ -92,178 +134,58 @@ node server.js
 
 ```
   <设备名> —— 局域网共享
-  本地:   http://localhost:<端口>
-  局域网: http://<你的局域网IP>:<端口>   (<网卡名>)
-  局域网: http://<另一块网卡的IP>:<端口>   (<网卡名>)
-  存储:   <共享目录的绝对路径>
+  local:  http://localhost:<端口>
+  LAN:    http://<你的局域网IP>:<端口>   (<网卡名>)
+  storage: <共享目录的绝对路径>
 ```
 
-把**局域网**那一行发给手机，在浏览器里打开就行。手机和电脑连同一个 Wi-Fi 即可通信，不需要联网。
+把 LAN 那一行发到手机上打开即可，两台设备在同一个网络里就行。
 
----
+### 功能
 
-## 功能
+- 拖拽、点选或整文件夹上传
+- 4 MB 分片、3 路并发、失败自动重试；大文件不占内存
+- 下载支持 HTTP Range，视频可拖进度条，也能断点续传
+- 多选或整个文件夹流式打包成 ZIP，不落盘缓存
+- 图片、视频、音频、PDF、文本页内预览
+- 分享链接使用真实局域网 IP，不会是 `localhost`
+- 手机、平板、桌面三套响应式布局，深色与浅色主题
+- 其他设备上传后通过 SSE 自动刷新
 
-**上传**
-
-- 拖拽文件到页面任意位置，或点击选择
-- 整文件夹上传，保留目录内的文件（拍平到当前目录）
-- 4 MB 分片 + 3 路并发 + 失败自动重试
-- 大文件不占内存，服务器边收边写盘
-
-**下载**
-
-- 单文件直传，支持 HTTP Range —— 视频可以拖着进度条看
-- 多选或整个文件夹，服务端流式打包成 ZIP，不会先缓存到磁盘
-
-**管理**
-
-- 新建文件夹、重命名、删除
-- 把文件拖到文件夹图标上即可移动
-- 批量选择后一次下载 / 分享 / 删除
-- 按名称搜索当前目录
-
-**预览**
-
-- 图片、视频、音频、PDF、文本直接在页面里看，不用先下载
-
-**分享**
-
-- **模式一 · 分享链接**：选中文件或文件夹，一键生成一次性链接和二维码
-- **模式二 · 共享空间**：创建一个固定链接的文件夹，之后往里放的东西手机都能看到
-- 共享空间支持手机端直接上传，也可以切换成只读
-- 手机端可以浏览子目录、逐个下载、或把整个目录打包成 ZIP
-- 链接里用的是**真实局域网 IP**，不会是 `localhost`
-- 多网卡时可以在弹窗里切换用哪块网卡
-
-**多端**
-
-- 手机、平板、桌面三套布局，不是简单缩放
-- 深色 / 浅色主题，跟随你的选择记忆
-- 其他设备上传文件后，你的页面会自动刷新（SSE）
-
----
-
-## 使用说明
-
-### 换成你想共享的目录
-
-默认共享项目下的 `files/`，可以指向任何目录：
+### 使用说明
 
 ```bash
-LANSHARE_ROOT=~/Downloads node server.js
+LANSHARE_ROOT=~/Downloads node server.js    # 换一个共享目录
+PORT=9000 LANSHARE_NAME="客厅 NAS" node server.js
 ```
 
-### 修改端口和设备名
-
-```bash
-PORT=9000 LANSHARE_NAME="客厅的 NAS" node server.js
-```
-
-| 参数 | 等价环境变量 | 默认值 | 说明 |
+| 参数 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `--port` | `PORT` | `8090` | 监听端口 |
 | `--root` | `LANSHARE_ROOT` | `./files` | 共享目录 |
-| `--name` | `LANSHARE_NAME` | 主机名 | 页面左上角显示的名称 |
+| `--name` | `LANSHARE_NAME` | 主机名 | 页面显示的名称 |
 | `--host` | `HOST` | `0.0.0.0` | 监听地址 |
 | — | `LANSHARE_MAX_UPLOAD` | 1 TB | 单文件大小上限（字节） |
 
-### 用手机扫码传照片
+### 常见问题
 
-1. 电脑上打开页面，先建一个「共享空间」（比如叫「手机相册」）
-2. 点空间的二维码，用手机扫一下，页面就打开了
-3. 手机点「上传文件」选照片，传完电脑上立刻能看到
-4. 反过来，电脑往这个文件夹里放文件，手机刷新即可下载
+**手机打不开地址。** 确认两台设备在同一个 Wi-Fi、防火墙放行了端口，并且用的是局域网 IP 而不是 `localhost`（在手机上 `localhost` 指的是手机自己）。
 
----
+**启动报 `node:sqlite` 错误。** Node 版本太低，`node -v` 看一下，需要 22.5 以上。
 
-## 常见问题
+**文件名重复。** 不会静默覆盖，会自动变成 `报告 (1).pdf` 这样的名字。
 
-**手机打不开这个地址？**
+**链接里显示 `127.0.0.1`。** 不会。服务端会把回环地址换成真实网卡 IP，并跳过 `tun`、`docker`、`Meta` 这类虚拟网卡。
 
-检查三件事：手机和电脑是否在同一个 Wi-Fi；电脑防火墙是否放行了 8090 端口；是不是用了 `localhost`（`localhost` 在手机上指的是手机自己）。
+### 安全提醒
 
-放行端口（Linux / ufw）：
+LanShare 是**给自己用的局域网工具，没有登录鉴权**：
 
-```bash
-sudo ufw allow 8090/tcp
-```
+- 同一网络内的任何人都能读写共享目录
+- 只在自己信任的网络里运行
+- **不要直接暴露到公网**，除非放在反向代理和认证之后
 
-**启动报 `node:sqlite` 相关错误？**
-
-Node 版本太低。`node -v` 看一下，需要 22.5 以上：
-
-```bash
-node -v
-```
-
-**文件传到一半卡住了？**
-
-重新拖入同一个文件即可，已经传完的文件不会重复保存（同名会自动加序号）。上传是逐片写入的，中途关页面不会留下半个损坏的文件。
-
-**分享链接里显示的是 `127.0.0.1`？**
-
-不会。服务端会判断请求来源，发现是回环地址时自动换成真实网卡 IP，并跳过 `tun`、`docker`、`Meta` 这类虚拟网卡。
-
-**上传后文件名变成了 `报告 (1).pdf`？**
-
-同名文件不会被静默覆盖，会自动加序号。
-
----
-
-## 设计取舍
-
-**为什么不用框架？**
-
-前端是原生 ES 模块，服务端只用 Node 内置模块。整个项目约 7500 行，克隆下来就能跑，不用等 `npm install`，也不会因为某个依赖过时突然炸掉。
-
-**为什么用分片上传？**
-
-一个 4 GB 的视频通过单次请求上传，只要中断就得从头开始，而且服务端要先把整个请求体读完才落盘。分片之后每片独立落盘，某一片失败只重传那一片。
-
-**为什么要自己写 ZIP？**
-
-`archiver` 之类的库会把整个压缩流在内存里拼好再发。这里用的是 data descriptor（每片写完再补 CRC），边读边发，打包一个 50 GB 的目录也不会占用 50 GB 内存。
-
-**为什么用 SSE 而不是 WebSocket？**
-
-只需要服务端单向推送「有文件变了」，SSE 用原生 `EventSource` 就能实现，不用引入 WebSocket 库，断线还会自动重连。
-
----
-
-## 安全提醒
-
-LanShare 是**给自己用的局域网工具**，默认**没有登录和权限控制**：
-
-- 同一网络内的任何人打开地址都能读写你的共享目录
-- 只在自己信任的 Wi-Fi 或有线网络里运行
-- **不要直接暴露到公网**；如果确实需要，请放在反向代理和认证之后
-
-服务端对路径参数做了规范化和越界检查，`..` 穿越和 `.lanshare` 内部目录均不可访问。
-
----
-
-## 目录结构
-
-```
-LanShare/
-├── server.js            入口：HTTP 服务与路由表
-├── src/
-│   ├── config.js        端口、路径、网卡地址选择
-│   ├── http.js          静态资源、Range 流式传输
-│   ├── storage.js       路径安全、目录遍历、磁盘统计
-│   ├── db.js            SQLite（仅存分享记录）
-│   ├── zip.js           流式 ZIP 打包
-│   ├── events.js        SSE 广播
-│   └── routes/          files / upload / share
-├── public/
-│   ├── index.html       主界面
-│   ├── share.html       分享下载页
-│   ├── css/             设计令牌、主样式、分享页样式
-│   └── js/              app / api / upload / util / qr
-├── files/               默认共享目录（可改）
-└── data/                SQLite 数据库
-```
+服务端对路径参数做了规范化与越界检查，`..` 穿越和内部 `.lanshare` 目录均不可访问。
 
 ---
 
