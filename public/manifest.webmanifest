@@ -1,0 +1,9 @@
+{
+  "name": "LanShare · 局域网共享",
+  "short_name": "LanShare",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#16181b",
+  "theme_color": "#16181b",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16181b">
+<title>下载 · LanShare</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/share.css">
+</head>
+<body>
+<main class="share-page">
+  <header class="share-head">
+    <div class="share-mark">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="3.2" fill="currentColor"/>
+        <path d="M9.6 9.6a9 9 0 0 0 0 12.8M22.4 22.4a9 9 0 0 0 0-12.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M6 6a14 14 0 0 0 0 20M26 26a14 14 0 0 0 0-20" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".38"/>
+      </svg>
+      <span>LanShare</span>
+    </div>
+    <p class="share-from" id="from">局域网共享</p>
+  </header>
+
+  <section class="share-card" id="card">
+    <div class="share-loading" id="loading">正在打开分享…</div>
+  </section>
+
+  <footer class="share-foot">
+    <span id="footNote">同一局域网内可直接下载</span>
+  </footer>
+</main>
+<script type="module" src="/js/share.js"></script>
+</body>
+</html>
