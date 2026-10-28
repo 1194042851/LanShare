@@ -11,18 +11,33 @@ db.exec(`
   PRAGMA journal_mode = WAL;
 
   CREATE TABLE IF NOT EXISTS shares (
-    id         TEXT PRIMARY KEY,
-    rel        TEXT NOT NULL,
-    kind       TEXT NOT NULL,
-    created_at INTEGER NOT NULL
+    id           TEXT PRIMARY KEY,
+    rel          TEXT NOT NULL,
+    kind         TEXT NOT NULL,
+    created_at   INTEGER NOT NULL,
+    title        TEXT,
+    allow_upload INTEGER NOT NULL DEFAULT 0
   );
   CREATE INDEX IF NOT EXISTS idx_shares_rel ON shares(rel);
 `);
 
+// Older databases predate these columns; add them in place.
+const columns = new Set(db.prepare('PRAGMA table_info(shares)').all().map((row) => row.name));
+if (!columns.has('title')) db.exec('ALTER TABLE shares ADD COLUMN title TEXT');
+if (!columns.has('allow_upload')) db.exec('ALTER TABLE shares ADD COLUMN allow_upload INTEGER NOT NULL DEFAULT 0');
+
 export const stmt = {
-  insertShare: db.prepare('INSERT INTO shares (id, rel, kind, created_at) VALUES (?, ?, ?, ?)'),
+  insertShare: db.prepare(
+    'INSERT INTO shares (id, rel, kind, created_at, title, allow_upload) VALUES (?, ?, ?, ?, ?, ?)',
+  ),
   getShare: db.prepare('SELECT * FROM shares WHERE id = ?'),
   allShares: db.prepare('SELECT * FROM shares ORDER BY created_at DESC'),
+  sharesByKind: db.prepare('SELECT * FROM shares WHERE kind = ? ORDER BY created_at DESC'),
   deleteShare: db.prepare('DELETE FROM shares WHERE id = ?'),
   deleteSharesUnder: db.prepare('DELETE FROM shares WHERE rel = ? OR rel LIKE ?'),
+  renameSharePaths: db.prepare('UPDATE shares SET rel = ? WHERE id = ?'),
+  setSpaceUpload: db.prepare('UPDATE shares SET allow_upload = ? WHERE id = ?'),
+  setSpaceTitle: db.prepare('UPDATE shares SET title = ? WHERE id = ?'),
+  sharesUnder: db.prepare('SELECT * FROM shares WHERE rel = ? OR rel LIKE ?'),
+  renameShareRel: db.prepare('UPDATE shares SET rel = ? WHERE id = ?'),
 };

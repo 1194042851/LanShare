@@ -46,6 +46,13 @@ route('DELETE', '/api/shares/:id', share.handleDeleteShare);
 route('GET', '/api/s/:id', share.handleShareInfo);
 route('GET', '/api/s/:id/list', share.handleShareList);
 route('GET', '/api/s/:id/content', share.handleShareContent);
+route('PUT', '/api/s/:id/upload', share.handleShareUpload);
+
+/* shared spaces */
+route('POST', '/api/spaces', share.handleCreateSpace);
+route('GET', '/api/spaces', share.handleListSpaces);
+route('PATCH', '/api/spaces/:id', share.handleUpdateSpace);
+route('DELETE', '/api/spaces/:id', share.handleDeleteSpace);
 
 /* system */
 route('GET', '/api/system', share.handleSystem);

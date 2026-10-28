@@ -1835,3 +1835,36 @@ body.is-dragging .drag-veil {
     display: block;
   }
 }
+
+/* ------------------------------------------------------- two share modes */
+
+.mode-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface);
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.6;
+}
+
+.mode-hint svg {
+  color: var(--sig);
+  flex: none;
+}
+
+.link-btn {
+  color: var(--sig);
+  font-weight: 550;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dropzone--space {
+  padding: 18px var(--pad);
+}

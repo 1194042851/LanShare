@@ -11,6 +11,7 @@ const state = {
   view: localStorage.getItem('ls:view') || 'list',
   query: '',
   shares: [],
+  spaces: [],
   loading: false,
   system: null,
 };
@@ -41,7 +42,7 @@ function routeFromHash() {
   const hash = location.hash.replace(/^#\/?/, '');
   const [route, ...rest] = hash.split('/');
   if (route === 's' && rest[0]) return; // public share page handles itself
-  state.route = ['files', 'shares'].includes(route) ? route : 'files';
+  state.route = ['files', 'shares', 'spaces'].includes(route) ? route : 'files';
   if (state.route === 'files') {
     state.dir = decodeURIComponent(rest.join('/'));
   }
@@ -57,7 +58,9 @@ function syncNav() {
 }
 
 function go(route, dir = '') {
-  const next = route === 'shares' ? '#/shares' : `#/files${dir ? `/${encodeURI(dir)}` : ''}`;
+  const next = route === 'files'
+    ? `#/files${dir ? `/${encodeURI(dir)}` : ''}`
+    : `#/${route}`;
   if (location.hash === next) render();
   else location.hash = next;
 }
@@ -66,6 +69,7 @@ function go(route, dir = '') {
 
 async function render() {
   if (state.route === 'shares') return renderShares();
+  if (state.route === 'spaces') return renderSpaces();
   return renderFiles();
 }
 
@@ -323,6 +327,164 @@ function errorState(message) {
         el('button', { class: 'btn btn--ghost', onclick: () => render() }, '重试'))));
 }
 
+/* ---------------------------------------------------------------- spaces */
+
+async function renderSpaces() {
+  renderCrumbsEmpty('共享空间');
+  view.replaceChildren(el('div', { class: 'section' },
+    el('div', { class: 'section__head' }, el('div', { class: 'section__title' }, '共享空间'))));
+
+  try {
+    const { spaces } = await api.spaces();
+    state.spaces = spaces;
+  } catch (err) {
+    view.replaceChildren(errorState(err.message));
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+
+  frag.append(el('div', { class: 'section' },
+    el('div', { class: 'dropzone dropzone--space' },
+      el('div', { class: 'dropzone__icon' }, icon('folderPlus', 22)),
+      el('div', { class: 'dropzone__text' },
+        el('div', { class: 'dropzone__title' }, '新建一个共享空间'),
+        el('div', { class: 'dropzone__hint' },
+          '会创建一个固定链接的文件夹，之后放进去的东西手机打开链接都能看到')),
+      el('div', { style: { display: 'flex', gap: '8px', flex: 'none' } },
+        el('button', { class: 'btn btn--primary btn--sm', onclick: () => createSpace() }, '创建')))));
+
+  frag.append(el('div', { class: 'section' },
+    el('div', { class: 'section__head' },
+      el('div', { class: 'section__title' }, '我的空间'),
+      el('div', { class: 'section__meta' }, `${state.spaces.length} 个`))));
+
+  if (!state.spaces.length) {
+    frag.append(el('div', { class: 'section' },
+      el('div', { class: 'empty' },
+        el('div', { class: 'empty__mark' }, icon('folder', 52, 1.4)),
+        el('div', { class: 'empty__title' }, '还没有共享空间'),
+        el('div', { class: 'empty__text' },
+          '共享空间是一个固定链接的文件夹：你往里放文件，手机打开链接就能看到全部内容并下载，不用每次重新生成链接。'),
+        el('div', { class: 'empty__actions' },
+          el('button', { class: 'btn btn--primary', onclick: () => createSpace() }, '创建共享空间')))));
+  } else {
+    const list = el('div', { class: 'share-list', style: { padding: '0 2px' } });
+    for (const space of state.spaces) list.append(spaceCard(space));
+    frag.append(el('div', { class: 'section' }, list));
+  }
+
+  view.replaceChildren(frag);
+}
+
+function spaceCard(space) {
+  const uploadTag = space.allowUpload
+    ? el('span', { class: 'tag tag--sig' }, '可上传')
+    : el('span', { class: 'tag tag--warn' }, '只读');
+
+  return el('div', { class: 'share-card' },
+    el('div', { class: 'row__icon', dataset: { kind: 'dir' } }, icon('folder', 19)),
+    el('div', { class: 'share-card__body' },
+      el('div', { class: 'share-card__name' }, space.name),
+      el('div', { class: 'share-card__link' }, space.url),
+      el('div', { class: 'share-card__tags' },
+        uploadTag,
+        el('span', { class: 'tag' }, relTime(space.createdAt)),
+        el('span', { class: 'tag' }, space.rel))),
+    el('div', { style: { display: 'flex', gap: '4px' } },
+      el('button', {
+        class: 'btn btn--quiet btn--icon btn--sm',
+        title: '在文件列表里打开',
+        onclick: () => go('files', space.rel),
+      }, icon('folder', 16)),
+      el('button', {
+        class: 'btn btn--quiet btn--icon btn--sm',
+        title: '复制链接',
+        onclick: async () => {
+          await copyText(space.url);
+          toast('链接已复制');
+        },
+      }, icon('link', 16)),
+      el('button', {
+        class: 'btn btn--quiet btn--icon btn--sm',
+        title: '二维码',
+        onclick: () => showQr(space),
+      }, icon('qr', 16)),
+      el('button', {
+        class: 'btn btn--quiet btn--icon btn--sm',
+        title: space.allowUpload ? '关闭手机上传' : '允许手机上传',
+        onclick: async () => {
+          try {
+            await api.updateSpace(space.id, { allowUpload: !space.allowUpload });
+            toast(space.allowUpload ? '已设为只读' : '已允许手机上传');
+            renderSpaces();
+          } catch (err) { toast(err.message, 'error'); }
+        },
+      }, icon(space.allowUpload ? 'eye' : 'upload', 16)),
+      el('button', {
+        class: 'btn btn--quiet btn--icon btn--sm',
+        title: '取消共享（保留文件夹）',
+        style: { color: 'var(--danger)' },
+        onclick: () => confirmUnshareSpace(space),
+      }, icon('trash', 16))));
+}
+
+function confirmUnshareSpace(space) {
+  modal({
+    title: '取消共享',
+    body: (body) => body.append(
+      el('p', { style: { margin: 0, fontSize: '14px', color: 'var(--ink-2)' } },
+        `确定取消「${space.name}」的共享链接？`),
+      el('p', { style: { margin: '10px 0 0', fontSize: '12.5px', color: 'var(--ink-3)' } },
+        `文件夹和里面的文件会保留在「${space.rel}」，只是这个链接失效。`)),
+    actions: () => [
+      ['取消', 'ghost', closeModal],
+      ['取消共享', 'danger', async () => {
+        try {
+          await api.deleteSpace(space.id);
+          closeModal();
+          toast('已取消共享');
+          renderSpaces();
+        } catch (err) { toast(err.message, 'error'); }
+      }],
+    ],
+  });
+}
+
+function createSpace() {
+  modal({
+    title: '新建共享空间',
+    body: (body) => {
+      const input = el('input', {
+        class: 'input',
+        placeholder: '例如：家庭相册、项目资料',
+        value: '',
+      });
+      body.append(
+        el('div', { class: 'field' },
+          el('label', { class: 'field__label' }, '空间名称'),
+          input,
+          el('div', { class: 'field__hint' },
+            '会在当前目录建一个同名文件夹，并生成固定链接。之后往文件夹里丢东西，手机刷新就能看到。')));
+      setTimeout(() => input.focus(), 60);
+      return { input };
+    },
+    actions: ({ input }) => [
+      ['取消', 'ghost', closeModal],
+      ['创建', 'primary', async () => {
+        const name = input.value.trim();
+        if (!name) return input.focus();
+        try {
+          const space = await api.createSpace({ name, parent: state.dir || '' });
+          closeModal();
+          showShareCreated([space], [space.rel]);
+          renderSpaces();
+        } catch (err) { toast(err.message, 'error'); }
+      }],
+    ],
+  });
+}
+
 /* ------------------------------------------------------------------ shares */
 
 async function renderShares() {
@@ -341,6 +503,13 @@ async function renderShares() {
     el('div', { class: 'section__head' },
       el('div', { class: 'section__title' }, '已创建的链接'),
       el('div', { class: 'section__meta' }, `${state.shares.length} 个`))));
+
+  frag.append(el('div', { class: 'section' },
+    el('div', { class: 'mode-hint' },
+      icon('info', 15),
+      el('span', {}, '这里是为选中文件生成的一次性链接。想要「一个链接长期共享整个目录」，去 '),
+      el('button', { class: 'link-btn', onclick: () => go('spaces') }, '共享空间'),
+      el('span', {}, '。'))));
 
   if (!state.shares.length) {
     frag.append(el('div', { class: 'section' },

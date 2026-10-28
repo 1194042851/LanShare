@@ -6,6 +6,7 @@ import {
 } from '../storage.js';
 import { sendFile } from '../http.js';
 import { broadcast } from '../events.js';
+import { stmt } from '../db.js';
 
 export async function handleList(req, res, url) {
   const rel = safeRel(url.searchParams.get('dir') || '');
@@ -63,6 +64,9 @@ export async function handleRename(req, res) {
     return fail(res, 409, '同名文件或文件夹已存在');
   } catch {}
   await fsp.rename(absPath(from), absPath(to));
+  for (const row of stmt.sharesUnder.all(from, `${from}/%`)) {
+    stmt.renameShareRel.run(`${to}${row.rel.slice(from.length)}`, row.id);
+  }
   broadcast('change', { dir: parent });
   return json(res, 200, { rel: to });
 }
@@ -73,6 +77,7 @@ export async function handleDelete(req, res) {
   const parents = new Set();
   for (const rel of paths) {
     await fsp.rm(absPath(rel), { recursive: true, force: true });
+    stmt.deleteSharesUnder.run(rel, `${rel}/%`);
     const parent = path.posix.dirname(rel);
     parents.add(parent === '.' ? '' : parent);
   }

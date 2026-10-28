@@ -43,12 +43,43 @@ export const api = {
   createShare: (payload) => request('/api/shares', { method: 'POST', body: payload }),
   deleteShare: (id) => request(`/api/shares/${id}`, { method: 'DELETE' }),
 
+  spaces: () => request('/api/spaces'),
+  createSpace: (payload) => request('/api/spaces', { method: 'POST', body: payload }),
+  updateSpace: (id, payload) => request(`/api/spaces/${id}`, { method: 'PATCH', body: payload }),
+  deleteSpace: (id) => request(`/api/spaces/${id}`, { method: 'DELETE' }),
+
   shareInfo: (id) => request(`/api/s/${id}`),
-  shareList: (id) => request(`/api/s/${id}/list`),
+  shareList: (id, sub = '') => request(`/api/s/${id}/list?path=${encodeURIComponent(sub)}`),
   shareContentUrl: (id, params = {}) => {
     const q = new URLSearchParams(params).toString();
     return `/api/s/${id}/content${q ? `?${q}` : ''}`;
   },
+  shareUploadUrl: (id, params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return `/api/s/${id}/upload${q ? `?${q}` : ''}`;
+  },
+
+  /** Raw-body upload used by the public space page. */
+  uploadToShare: (id, { path = '', name, file, onProgress, signal }) => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', `/api/s/${id}/upload?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`);
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded, e.total);
+    });
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText || '{}'));
+      } else {
+        let message = `上传失败 (${xhr.status})`;
+        try { message = JSON.parse(xhr.responseText).error || message; } catch {}
+        reject(Object.assign(new Error(message), { status: xhr.status }));
+      }
+    });
+    xhr.addEventListener('error', () => reject(new Error('网络中断，上传失败')));
+    xhr.addEventListener('abort', () => reject(Object.assign(new Error('已取消'), { name: 'AbortError' })));
+    signal?.addEventListener('abort', () => xhr.abort());
+    xhr.send(file);
+  }),
 };
 
 export function downloadUrl(path, inline = false) {
