@@ -77,8 +77,8 @@ LanShare 提供两种互不干扰的共享方式，按场景选：
 只有一个前置条件：**Node.js 22.5 或更高版本**（用到内置的 `node:sqlite`，所以不需要 `npm install`）。
 
 ```bash
-git clone https://github.com/1194042851/lanshare-local.git
-cd lanshare-local
+git clone https://github.com/1194042851/LanShare.git
+cd LanShare
 ./start.sh
 ```
 
@@ -246,7 +246,7 @@ LanShare 是**给自己用的局域网工具**，默认**没有登录和权限�
 ## 目录结构
 
 ```
-lanshare-local/
+LanShare/
 ├── server.js            入口：HTTP 服务与路由表
 ├── src/
 │   ├── config.js        端口、路径、网卡地址选择
